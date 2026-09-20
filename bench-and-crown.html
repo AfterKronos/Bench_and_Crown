@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bench & Crown — Build your watch from your own parts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14171B;
+    --surface: #1C2025;
+    --surface-2: #23282E;
+    --line: #333A41;
+    --text: #ECE7DA;
+    --text-dim: #9BA3A9;
+    --brass: #C99A4E;
+    --brass-light: #E7C784;
+    --warn: #C97A4E;
+    --radius-s: 6px;
+    --radius-m: 10px;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F1ECE0; --surface: #FBF9F3; --surface-2: #F1ECDF;
+      --line: #DCD4C1; --text: #201C15; --text-dim: #6B6558;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F1ECE0; --surface: #FBF9F3; --surface-2: #F1ECDF;
+    --line: #DCD4C1; --text: #201C15; --text-dim: #6B6558;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .display { font-family: "Fraunces", Georgia, serif; font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+  a { color: inherit; }
+  input, textarea { font-family: inherit; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+  header.site {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; max-width: 1180px; margin: 0 auto; }
+  .wordmark { font-size: 1.25rem; }
+  .wordmark span.amp { color: var(--brass); }
+  .nav-cta {
+    font-family: "IBM Plex Sans"; font-size: 0.9rem; font-weight: 500;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    padding: 9px 16px; border-radius: var(--radius-m); cursor: pointer;
+  }
+  .nav-cta:hover { border-color: var(--brass); }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; padding: 64px 0 56px; }
+  .hero h1 { font-size: clamp(2rem, 3.6vw, 2.9rem); line-height: 1.1; }
+  .hero p.lede { font-size: 1.08rem; color: var(--text-dim); max-width: 48ch; margin-top: 18px; line-height: 1.6; }
+  .hero-cta {
+    margin-top: 30px; display: inline-flex; align-items: center; gap: 10px;
+    background: var(--brass); color: #191307; border: none;
+    font-family: "IBM Plex Sans"; font-weight: 600; font-size: 0.98rem;
+    padding: 14px 24px; border-radius: var(--radius-m); cursor: pointer;
+  }
+  .hero-cta:hover { background: var(--brass-light); }
+
+  .preview-stage {
+    background: radial-gradient(120% 120% at 50% 15%, var(--surface-2), var(--surface));
+    border: 1px solid var(--line); border-radius: 18px; padding: 28px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  .preview-stage svg { width: 100%; height: auto; max-width: 240px; }
+  .checklist { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .check-row {
+    display: flex; align-items: center; gap: 10px; font-size: 0.9rem;
+    color: var(--text-dim); border: 1px solid var(--line); background: var(--surface-2);
+    border-radius: var(--radius-m); padding: 9px 12px; transition: border-color .15s, color .15s;
+  }
+  .check-row .dot {
+    width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--text-dim); flex: none;
+    transition: background .15s, border-color .15s;
+  }
+  .check-row.done { color: var(--text); border-color: var(--brass); }
+  .check-row.done .dot { background: var(--brass); border-color: var(--brass); }
+  .checklist-count { font-size: 0.8rem; color: var(--text-dim); text-align: center; }
+
+  .builder { border-top: 1px solid var(--line); padding: 56px 0 100px; display: grid; grid-template-columns: 1fr 340px; gap: 48px; align-items: start; }
+  .builder h2 { font-size: 1.7rem; }
+  .builder .subtitle { color: var(--text-dim); margin-top: 10px; max-width: 60ch; line-height: 1.55; }
+  .compat-banner {
+    margin-top: 22px; padding: 18px 20px; border-radius: var(--radius-m);
+    background: color-mix(in srgb, var(--warn) 16%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line));
+    border-left: 4px solid var(--warn);
+  }
+  .compat-banner > b { display: block; font-size: 1.04rem; font-weight: 600; margin-bottom: 12px; }
+  .guidance-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .guidance-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.89rem; color: var(--text); line-height: 1.45; }
+  .guidance-list .icon { flex: none; font-size: 1rem; line-height: 1.4; }
+  .guidance-list b { font-weight: 600; }
+
+  .suggestions-card {
+    margin-top: 18px; border: 1px solid var(--line); background: var(--surface);
+    border-radius: 14px; padding: 20px;
+  }
+  .suggestions-card .suggestions-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .suggestions-card .suggestions-head b { font-size: 1.02rem; font-weight: 500; }
+  .suggestions-card .suggestions-head span { font-size: 0.82rem; color: var(--text-dim); }
+  .suggestions-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .suggestions-list li {
+    display: flex; justify-content: space-between; gap: 12px; padding: 11px 0;
+    border-top: 1px dashed var(--line); font-size: 0.88rem;
+  }
+  .suggestions-list li:first-child { border-top: none; }
+  .suggestions-list .cat { font-weight: 500; flex: none; width: 130px; }
+  .suggestions-list .note { color: var(--text-dim); text-align: right; }
+  .suggestions-list .note a { color: var(--brass-light); text-decoration: underline; }
+  .suggestions-list .note a + a { margin-left: 14px; }
+
+  .skip-toggle {
+    display: flex; align-items: flex-start; gap: 9px; margin-bottom: 14px;
+    font-size: 0.86rem; color: var(--text-dim); cursor: pointer; line-height: 1.4;
+  }
+  .skip-toggle input { margin-top: 3px; flex: none; width: 15px; height: 15px; accent-color: var(--brass); cursor: pointer; }
+  .skip-toggle span { color: var(--text); }
+  .field-grid.is-skipped { opacity: 0.4; pointer-events: none; }
+
+  .movement-reminder {
+    margin: 12px 0 0; font-size: 0.82rem; font-weight: 500; color: var(--warn);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .part-cards { display: flex; flex-direction: column; gap: 18px; margin-top: 28px; }
+  .part-card { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 20px; }
+  .part-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .part-card-head b { font-size: 1.02rem; font-weight: 500; }
+  .part-card-head span { font-size: 0.82rem; color: var(--text-dim); }
+
+  .field-grid { display: grid; grid-template-columns: 1.4fr 1fr 0.7fr; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 0.74rem; color: var(--text-dim); }
+  .field input {
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    padding: 10px 11px; border-radius: var(--radius-s); font-size: 0.9rem; width: 100%;
+  }
+  .field input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+  .link-hint { font-size: 0.78rem; color: var(--warn); margin-top: 8px; display: none; }
+  .link-hint.show { display: block; }
+  .link-open {
+    font-size: 0.8rem; margin-top: 10px; display: none; align-items: center; gap: 5px;
+    color: var(--brass-light); text-decoration: none; width: fit-content;
+  }
+  .link-open.show { display: inline-flex; }
+
+  .notes-card { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 20px; margin-top: 18px; }
+  .notes-card label { font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 10px; }
+  .notes-card textarea {
+    width: 100%; min-height: 84px; resize: vertical; background: var(--surface-2);
+    border: 1px solid var(--line); color: var(--text); border-radius: var(--radius-s);
+    padding: 11px; font-size: 0.9rem; line-height: 1.5;
+  }
+
+  .summary-card { position: sticky; top: calc(78px + env(safe-area-inset-top, 0px)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .summary-card h3 { font-size: 1.05rem; }
+  .summary-card .sub { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; }
+  .summary-list { list-style: none; margin: 16px 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .summary-list li { font-size: 0.86rem; border-bottom: 1px dashed var(--line); padding-bottom: 10px; }
+  .summary-list li .row { display: flex; justify-content: space-between; gap: 8px; }
+  .summary-list li .row b { font-weight: 500; }
+  .summary-list li .row span.price { color: var(--brass-light); white-space: nowrap; }
+  .summary-list li .empty { color: var(--text-dim); font-style: italic; }
+  .summary-list li a { font-size: 0.78rem; color: var(--text-dim); text-decoration: underline; }
+
+  .summary-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 6px; }
+  .summary-total .amt { font-family: "Fraunces"; font-size: 1.6rem; color: var(--brass-light); }
+  .fee-line { display: flex; justify-content: space-between; font-size: 0.84rem; color: var(--text-dim); margin-top: 10px; }
+  .shipping-line span:last-child { color: var(--brass-light); font-weight: 500; }
+
+  .request-btn {
+    width: 100%; margin-top: 18px; padding: 13px; border-radius: var(--radius-m);
+    border: none; background: var(--brass); color: #191307;
+    font-family: "IBM Plex Sans"; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+  }
+  .request-btn:disabled { background: var(--surface-2); color: var(--text-dim); cursor: not-allowed; }
+  .request-btn:not(:disabled):hover { background: var(--brass-light); }
+  .clear-link { display: block; text-align: center; margin-top: 12px; font-size: 0.8rem; color: var(--text-dim); background: none; border: none; cursor: pointer; text-decoration: underline; }
+  .summary-note { font-size: 0.78rem; color: var(--text-dim); margin-top: 14px; line-height: 1.5; }
+  .summary-note-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .summary-note-list li { font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; display: flex; gap: 7px; }
+  .summary-note-list li::before { content: "–"; flex: none; }
+
+  .how { border-top: 1px solid var(--line); padding: 56px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+  .how .item b { display: block; font-family: "Fraunces"; font-size: 1.02rem; margin-bottom: 8px; }
+  .how .item p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.55; margin: 0; }
+
+  footer.site { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--text-dim); font-size: 0.85rem; }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; padding-top: 36px; }
+    .builder { grid-template-columns: 1fr; }
+    .summary-card { position: static; }
+    .how { grid-template-columns: 1fr 1fr; }
+    .field-grid { grid-template-columns: 1fr; }
+    .wrap { padding: 0 18px; }
+    .nav-row { padding: 16px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  .review-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(10, 11, 13, 0.72);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px calc(20px + env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px));
+  }
+  .review-overlay[hidden] { display: none; }
+  .review-panel {
+    position: relative; width: 100%; max-width: 440px; max-height: 86vh; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 26px;
+  }
+  .review-close {
+    position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--surface-2); color: var(--text);
+    cursor: pointer; font-size: 0.9rem; line-height: 1;
+  }
+  .review-panel h3 { font-size: 1.25rem; padding-right: 30px; }
+  .review-sub { font-size: 0.88rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+  .review-recap {
+    list-style: none; margin: 16px 0; padding: 12px 14px; background: var(--surface-2);
+    border-radius: var(--radius-m); display: flex; flex-direction: column; gap: 6px;
+  }
+  .review-recap li { font-size: 0.84rem; color: var(--text-dim); display: flex; justify-content: space-between; gap: 10px; }
+  .review-recap li b { color: var(--text); font-weight: 500; }
+  .review-fields { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+  .review-fields .field input {
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    padding: 11px 12px; border-radius: var(--radius-s); font-size: 0.92rem; width: 100%;
+  }
+  .review-fields .field label { font-size: 0.8rem; color: var(--text-dim); display: block; margin-bottom: 5px; }
+  .review-error { color: var(--warn); font-size: 0.82rem; margin: 10px 0 0; }
+  .review-panel .request-btn { display: block; text-align: center; text-decoration: none; margin-top: 18px; }
+  #fallback-text {
+    width: 100%; min-height: 160px; margin-top: 14px; resize: vertical;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: var(--radius-s); padding: 11px; font-size: 0.82rem; line-height: 1.5; font-family: monospace;
+  }
+  .review-panel .clear-link { text-align: left; }
+  .copy-confirm { font-size: 0.8rem; color: var(--brass-light); margin-top: 8px; display: none; }
+  .copy-confirm.show { display: block; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="nav-row">
+    <div class="wordmark display">Bench <span class="amp">&amp;</span> Crown</div>
+    <button class="nav-cta" onclick="document.getElementById('builder').scrollIntoView({behavior:'smooth'})">Start your build</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>Found parts you love on AliExpress? Send us the links.</h1>
+      <p class="lede">Paste a link for the case, dial, hands, strap, and movement you want. We'll check they fit together, confirm price and timing, then hand-assemble the watch from the exact parts you picked.</p>
+      <button class="hero-cta" onclick="document.getElementById('builder').scrollIntoView({behavior:'smooth'})">Add your first part →</button>
+    </div>
+    <div class="preview-stage">
+      <svg viewBox="0 0 240 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of a watch">
+        <defs>
+          <linearGradient id="grad-steel" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#E7EBEE"/><stop offset="50%" stop-color="#9DA7AF"/><stop offset="100%" stop-color="#C9CFD4"/>
+          </linearGradient>
+        </defs>
+        <rect x="88" y="6" width="52" height="76" rx="6" fill="#5B3A26"/>
+        <rect x="88" y="178" width="52" height="76" rx="6" fill="#5B3A26"/>
+        <g fill="url(#grad-steel)">
+          <rect x="86" y="66" width="16" height="20" rx="3"/>
+          <rect x="138" y="66" width="16" height="20" rx="3"/>
+          <rect x="86" y="150" width="16" height="20" rx="3"/>
+          <rect x="138" y="150" width="16" height="20" rx="3"/>
+        </g>
+        <circle cx="120" cy="130" r="72" fill="url(#grad-steel)" stroke="#00000022" stroke-width="2"/>
+        <circle cx="120" cy="130" r="58" fill="none" stroke="#00000030" stroke-width="3"/>
+        <circle cx="120" cy="130" r="48" fill="#15130F"/>
+        <g stroke="#D8D2C2" stroke-width="2.2" stroke-linecap="round">
+          <line x1="120" y1="88" x2="120" y2="95"/>
+          <line x1="120" y1="165" x2="120" y2="172"/>
+          <line x1="78" y1="130" x2="85" y2="130"/>
+          <line x1="155" y1="130" x2="162" y2="130"/>
+        </g>
+        <rect x="117" y="105" width="3" height="28" rx="1.5" fill="#ECE7DA"/>
+        <rect x="118" y="96" width="1.6" height="38" rx="1" fill="#ECE7DA" transform="rotate(50 120 130)"/>
+        <circle cx="120" cy="130" r="2.6" fill="#ECE7DA"/>
+        <rect x="192" y="122" width="10" height="14" rx="2" fill="url(#grad-steel)"/>
+      </svg>
+      <div class="checklist" id="checklist"></div>
+      <div class="checklist-count" id="checklist-count">0 of 5 parts added</div>
+    </div>
+  </section>
+</div>
+
+<div class="wrap">
+  <section class="builder" id="builder">
+    <div>
+      <h2>Add your parts</h2>
+      <p class="subtitle">Paste the AliExpress link for each part you want. A short description and price aren't required, but they help us quote you faster and catch mismatches early.</p>
+      <div class="compat-banner">
+        <b>⚠ Before you add any parts</b>
+        <ul class="guidance-list">
+          <li><span class="icon">⚙</span><span><b>Movements aren't interchangeable.</b> A case, dial, and hands are only built to fit one specific movement — check each listing before adding it.</span></li>
+          <li><span class="icon">📏</span><span><b>Recommended sizing might not fit exactly.</b> We'll tell you the right size for your parts — small fit kits (spacers, link removal tools) are cheap and easy to use if something's slightly off.</span></li>
+          <li><span class="icon">💰</span><span><b>Movements vary a lot in price.</b> If you're watching your budget, look for a cheaper movement — it can still make a great watch.</span></li>
+        </ul>
+      </div>
+
+      <div class="suggestions-card">
+        <div class="suggestions-head"><b>Our recommendations</b><span>Optional — feel free to use your own picks instead</span></div>
+        <ul class="suggestions-list">
+          <li><span class="cat">Case</span><span class="note">Suggestion coming soon</span></li>
+          <li><span class="cat">Dial</span><span class="note">Suggestion coming soon</span></li>
+          <li><span class="cat">Hands</span><span class="note">Suggestion coming soon</span></li>
+          <li><span class="cat">Strap or bracelet</span><span class="note">Suggestion coming soon</span></li>
+          <li><span class="cat">Movement</span><span class="note"><a href="https://www.aliexpress.us/item/3256813027483895.html" target="_blank" rel="noopener noreferrer">Option 1 ↗</a><a href="https://www.aliexpress.us/item/3256812725947307.html" target="_blank" rel="noopener noreferrer">Option 2 ↗</a></span></li>
+        </ul>
+      </div>
+
+      <div class="part-cards" id="part-cards">
+        <!-- generated by JS -->
+      </div>
+
+      <div class="notes-card">
+        <label for="notes">Anything else we should know?</label>
+        <textarea id="notes" placeholder="Wrist size, deadline, a look you're going for, or which parts you're unsure fit together…"></textarea>
+      </div>
+    </div>
+
+    <aside class="summary-card">
+      <h3 class="display">Your build</h3>
+      <p class="sub">What we'll receive when you submit</p>
+      <ul class="summary-list" id="summary-list"></ul>
+      <div class="fee-line"><span>Parts (as you've priced them)</span><span id="parts-subtotal">$0</span></div>
+      <div class="fee-line"><span>Building fee</span><span>$75</span></div>
+      <div class="fee-line shipping-line"><span>Shipping</span><span>We cover up to $20</span></div>
+      <div class="summary-total"><span>Estimated total</span><span class="amt" id="summary-total">$75</span></div>
+      <button class="request-btn" id="request-btn" disabled>Add at least one part to continue</button>
+      <button class="clear-link" id="clear-btn">Clear this build</button>
+      <ul class="summary-note-list">
+        <li>Confirms compatibility, final price, and lead time before we order anything — nothing is charged yet</li>
+        <li>$75 building fee, plus we cover shipping up to $20</li>
+        <li>Prices you enter are estimates — we verify them against the real listing</li>
+      </ul>
+    </aside>
+  </section>
+</div>
+
+<div class="review-overlay" id="review-overlay" hidden>
+  <div class="review-panel">
+    <button class="review-close" id="review-close" type="button" aria-label="Close">✕</button>
+
+    <div id="review-step-form">
+      <h3 class="display">Send us your build</h3>
+      <p class="review-sub">We just need your name and email so we can get back to you with a confirmed price and timeline.</p>
+      <ul class="review-recap" id="review-recap"></ul>
+      <div class="review-fields">
+        <div class="field"><label for="cust-name">Your name</label><input type="text" id="cust-name" placeholder="Jane Doe"></div>
+        <div class="field"><label for="cust-email">Your email</label><input type="email" id="cust-email" placeholder="you@example.com"></div>
+      </div>
+      <p class="review-error" id="review-error" hidden>Please enter your email so we know how to reach you.</p>
+      <a class="request-btn" id="send-link" href="#" target="_blank" rel="noopener">Send my build</a>
+    </div>
+
+    <div id="review-step-done" hidden>
+      <h3 class="display">Almost there</h3>
+      <p class="review-sub">Your email app should have just opened in a new tab with everything filled in — hit send there to finish.</p>
+      <p class="review-sub">If nothing opened, copy the message below and email it to <b>addykanna1111@gmail.com</b> yourself.</p>
+      <textarea id="fallback-text" readonly></textarea>
+      <button class="clear-link" id="copy-btn" type="button">Copy message</button>
+      <p class="copy-confirm" id="copy-confirm">Copied!</p>
+      <a class="clear-link" id="mailto-fallback-link" href="#" target="_blank" rel="noopener">Try opening your email app again</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="how">
+    <div class="item"><b>1. You find parts</b><p>Browse AliExpress for the case, dial, hands, strap, and movement you want.</p></div>
+    <div class="item"><b>2. You send the links</b><p>Paste each link into the builder above, with a price if you know it.</p></div>
+    <div class="item"><b>3. We confirm</b><p>We check the parts fit together and confirm final price and timing within a couple of days.</p></div>
+    <div class="item"><b>4. We assemble</b><p>Once you approve, we order, hand-assemble, regulate, and ship the finished watch.</p></div>
+  </section>
+</div>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Bench &amp; Crown — assembled from the parts you picked.</span>
+    <span>addykanna1111@gmail.com</span>
+  </div>
+</footer>
+
+<script>
+  const CATEGORIES = [
+    { key: 'case', title: 'Case', hint: 'must be built for the movement you pick below', checkMovement: true },
+    { key: 'dial', title: 'Dial', hint: 'must fit your movement, and its diameter must match your case', checkMovement: true },
+    { key: 'hands', title: 'Hands', hint: 'sized for one specific movement — check before adding', checkMovement: true },
+    { key: 'strap', title: 'Strap or bracelet', hint: 'skip this if your case already comes with one' },
+    { key: 'movement', title: 'Movement', hint: 'this decides which case, dial, and hands will actually fit' }
+  ];
+  const ASSEMBLY_FEE = 75;
+  const STORAGE_KEY = 'benchandcrown-build-v1';
+
+  const cardsEl = document.getElementById('part-cards');
+  CATEGORIES.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'part-card';
+    const skipToggle = cat.key === 'strap' ? `
+      <label class="skip-toggle" for="strap-skip">
+        <input type="checkbox" id="strap-skip">
+        <span>My case already comes with a strap or bracelet — I don't need to add one</span>
+      </label>` : '';
+    const movementReminder = cat.checkMovement ? `
+      <p class="movement-reminder">⚠ Does this ${cat.title.toLowerCase()} match your movement?</p>` : '';
+    card.innerHTML = `
+      <div class="part-card-head"><b>${cat.title}</b><span>${cat.hint}</span></div>
+      ${skipToggle}
+      <div class="field-grid" id="${cat.key}-fieldgrid">
+        <div class="field"><label for="${cat.key}-link">AliExpress link</label>
+          <input type="url" id="${cat.key}-link" placeholder="https://aliexpress.com/item/..." inputmode="url"></div>
+        <div class="field"><label for="${cat.key}-name">What is it?</label>
+          <input type="text" id="${cat.key}-name" placeholder="e.g. 36mm brushed steel case"></div>
+        <div class="field"><label for="${cat.key}-price">Price (USD)</label>
+          <input type="number" id="${cat.key}-price" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      ${movementReminder}
+      <div class="link-hint" id="${cat.key}-hint">That link doesn't look like it's from AliExpress — double check it, or add it anyway if you're sure.</div>
+      <a class="link-open" id="${cat.key}-open" target="_blank" rel="noopener noreferrer">View listing ↗</a>
+    `;
+    cardsEl.appendChild(card);
+  });
+
+  const checklistEl = document.getElementById('checklist');
+  CATEGORIES.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'check-row';
+    row.id = `check-${cat.key}`;
+    row.innerHTML = `<span class="dot"></span><span>${cat.title}</span>`;
+    checklistEl.appendChild(row);
+  });
+
+  function applyStrapSkip(checked, opts = {}) {
+    const grid = document.getElementById('strap-fieldgrid');
+    if (!grid) return;
+    grid.classList.toggle('is-skipped', checked);
+    ['link', 'name', 'price'].forEach(f => {
+      const el = document.getElementById(`strap-${f}`);
+      if (!el) return;
+      el.disabled = checked;
+      if (checked && opts.clear) el.value = '';
+    });
+  }
+
+  const strapSkipEl = document.getElementById('strap-skip');
+  if (strapSkipEl) {
+    strapSkipEl.addEventListener('change', () => {
+      applyStrapSkip(strapSkipEl.checked, { clear: true });
+      render();
+    });
+  }
+
+  function readState() {
+    return CATEGORIES.map(cat => ({
+      key: cat.key,
+      title: cat.title,
+      link: document.getElementById(`${cat.key}-link`).value.trim(),
+      name: document.getElementById(`${cat.key}-name`).value.trim(),
+      price: parseFloat(document.getElementById(`${cat.key}-price`).value),
+      skip: cat.key === 'strap' && !!strapSkipEl && strapSkipEl.checked
+    }));
+  }
+
+  function render() {
+    const parts = readState();
+    let filledCount = 0;
+    let subtotal = 0;
+
+    const summaryList = document.getElementById('summary-list');
+    summaryList.innerHTML = '';
+
+    parts.forEach(p => {
+      const hasLink = p.link.length > 0;
+      const satisfied = hasLink || p.skip;
+      const looksLikeAliExpress = /aliexpress\.[a-z.]+/i.test(p.link);
+      document.getElementById(`${p.key}-hint`).classList.toggle('show', hasLink && !looksLikeAliExpress);
+
+      const openLink = document.getElementById(`${p.key}-open`);
+      if (hasLink) { openLink.href = p.link; openLink.classList.add('show'); }
+      else { openLink.classList.remove('show'); }
+
+      const checkRow = document.getElementById(`check-${p.key}`);
+      checkRow.classList.toggle('done', satisfied);
+      const checkLabel = checkRow.querySelector('span:last-child');
+      checkLabel.textContent = p.skip ? `${p.title} (included with case)` : p.title;
+      if (satisfied) filledCount++;
+      if (!isNaN(p.price) && !p.skip) subtotal += p.price;
+
+      const li = document.createElement('li');
+      if (p.skip) {
+        li.innerHTML = `<div class="row"><b>${p.title}</b><span class="price">included</span></div><span style="font-size:0.78rem;color:var(--text-dim)">Already on the case — no separate part needed</span>`;
+      } else if (hasLink) {
+        li.innerHTML = `<div class="row"><b>${p.title}${p.name ? ': ' + p.name : ''}</b><span class="price">${!isNaN(p.price) ? '$' + p.price.toFixed(2) : '—'}</span></div><a href="${p.link}" target="_blank" rel="noopener noreferrer">View listing ↗</a>`;
+      } else {
+        li.innerHTML = `<div class="row"><span class="empty">${p.title} — not added yet</span></div>`;
+      }
+      summaryList.appendChild(li);
+    });
+
+    document.getElementById('checklist-count').textContent = `${filledCount} of 5 parts added`;
+    document.getElementById('parts-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('summary-total').textContent = `$${(subtotal + ASSEMBLY_FEE).toFixed(2)}`;
+
+    const btn = document.getElementById('request-btn');
+    btn.disabled = filledCount === 0;
+    btn.textContent = filledCount === 0 ? 'Add at least one part to continue' : 'Request this build';
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        parts: parts.map(p => ({ key: p.key, link: p.link, name: p.name, price: document.getElementById(`${p.key}-price`).value, skip: p.skip })),
+        notes: document.getElementById('notes').value
+      }));
+    } catch (e) { /* storage unavailable — continue without persistence */ }
+  }
+
+  CATEGORIES.forEach(cat => {
+    ['link', 'name', 'price'].forEach(field => {
+      document.getElementById(`${cat.key}-${field}`).addEventListener('input', render);
+    });
+  });
+  document.getElementById('notes').addEventListener('input', render);
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    CATEGORIES.forEach(cat => {
+      document.getElementById(`${cat.key}-link`).value = '';
+      document.getElementById(`${cat.key}-name`).value = '';
+      document.getElementById(`${cat.key}-price`).value = '';
+    });
+    if (strapSkipEl) { strapSkipEl.checked = false; applyStrapSkip(false); }
+    document.getElementById('notes').value = '';
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    render();
+  });
+
+  const OWNER_EMAIL = 'addykanna1111@gmail.com';
+
+  function buildRequestBody(customerName, customerEmail) {
+    const parts = readState().filter(p => p.link || p.skip);
+    const lines = parts.map(p => {
+      if (p.skip) return `${p.title}: included with the case — no separate part needed`;
+      const priceStr = !isNaN(p.price) ? `$${p.price.toFixed(2)}` : 'price not given';
+      return `${p.title}: ${p.name || '(no description)'} — ${priceStr}\n${p.link}`;
+    });
+    const notes = document.getElementById('notes').value.trim();
+    return [
+      ...lines,
+      '',
+      `Parts subtotal (as entered): $${parts.reduce((s, p) => s + (p.skip || isNaN(p.price) ? 0 : p.price), 0).toFixed(2)}`,
+      `Building fee: $${ASSEMBLY_FEE.toFixed(2)}`,
+      `Shipping: covered by Bench & Crown, up to $20 total`,
+      '',
+      notes ? `Notes: ${notes}` : '',
+      '',
+      `Customer name: ${customerName || '(not given)'}`,
+      `Customer email: ${customerEmail || '(not given)'}`
+    ].filter(Boolean).join('\n');
+  }
+
+  function buildMailtoHref(customerName, customerEmail) {
+    const body = buildRequestBody(customerName, customerEmail);
+    const replyTo = customerEmail ? `&cc=${encodeURIComponent(customerEmail)}` : '';
+    return `mailto:${OWNER_EMAIL}?subject=${encodeURIComponent('New watch build request')}&body=${encodeURIComponent(body)}${replyTo}`;
+  }
+
+  const reviewOverlay = document.getElementById('review-overlay');
+  const reviewStepForm = document.getElementById('review-step-form');
+  const reviewStepDone = document.getElementById('review-step-done');
+  const reviewRecap = document.getElementById('review-recap');
+  const reviewError = document.getElementById('review-error');
+  const custNameEl = document.getElementById('cust-name');
+  const custEmailEl = document.getElementById('cust-email');
+  const sendLink = document.getElementById('send-link');
+  const mailtoFallbackLink = document.getElementById('mailto-fallback-link');
+  const fallbackText = document.getElementById('fallback-text');
+
+  function openReviewOverlay() {
+    const parts = readState().filter(p => p.link || p.skip);
+    reviewRecap.innerHTML = parts.map(p => {
+      const value = p.skip ? 'included with case' : (!isNaN(p.price) ? `$${p.price.toFixed(2)}` : 'price not given');
+      return `<li><span>${p.title}${p.name ? ': ' + p.name : ''}</span><b>${value}</b></li>`;
+    }).join('');
+    reviewError.hidden = true;
+    reviewStepForm.hidden = false;
+    reviewStepDone.hidden = true;
+    reviewOverlay.hidden = false;
+  }
+
+  function closeReviewOverlay() {
+    reviewOverlay.hidden = true;
+  }
+
+  document.getElementById('request-btn').addEventListener('click', () => {
+    if (document.getElementById('request-btn').disabled) return;
+    openReviewOverlay();
+  });
+
+  document.getElementById('review-close').addEventListener('click', closeReviewOverlay);
+  reviewOverlay.addEventListener('click', (e) => { if (e.target === reviewOverlay) closeReviewOverlay(); });
+
+  sendLink.addEventListener('click', (e) => {
+    const email = custEmailEl.value.trim();
+    if (!email.includes('@') || !email.includes('.')) {
+      e.preventDefault();
+      reviewError.hidden = false;
+      custEmailEl.focus();
+      return;
+    }
+    reviewError.hidden = true;
+    const name = custNameEl.value.trim();
+    const href = buildMailtoHref(name, email);
+    sendLink.href = href;
+    mailtoFallbackLink.href = href;
+    fallbackText.value = buildRequestBody(name, email);
+    // Let the click proceed (opens the mail app in a new tab), then flip to the fallback view.
+    reviewStepForm.hidden = true;
+    reviewStepDone.hidden = false;
+  });
+
+  document.getElementById('copy-btn').addEventListener('click', async () => {
+    const confirmEl = document.getElementById('copy-confirm');
+    try {
+      await navigator.clipboard.writeText(fallbackText.value);
+      confirmEl.classList.add('show');
+      setTimeout(() => confirmEl.classList.remove('show'), 2000);
+    } catch (e) {
+      fallbackText.focus();
+      fallbackText.select();
+    }
+  });
+
+  // Restore any in-progress build for this visitor
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (saved) {
+      (saved.parts || []).forEach(p => {
+        const linkEl = document.getElementById(`${p.key}-link`);
+        const nameEl = document.getElementById(`${p.key}-name`);
+        const priceEl = document.getElementById(`${p.key}-price`);
+        if (linkEl) linkEl.value = p.link || '';
+        if (nameEl) nameEl.value = p.name || '';
+        if (priceEl) priceEl.value = p.price || '';
+      });
+      if (saved.notes) document.getElementById('notes').value = saved.notes;
+      const savedStrap = (saved.parts || []).find(p => p.key === 'strap');
+      if (strapSkipEl && savedStrap && savedStrap.skip) {
+        strapSkipEl.checked = true;
+        applyStrapSkip(true);
+      }
+    }
+  } catch (e) { /* no saved build, or storage unavailable */ }
+
+  render();
+</script>
+</body>
+</html>
